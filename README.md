@@ -25,11 +25,9 @@
 ├── src/
 │   ├── app/
 │   │   ├── api/process-order/route.ts  # AI处理API
-│   │   ├── page.tsx                    # 主页面（核心逻辑）
+│   │   ├── page.tsx                    # 主页面（所有UI+逻辑）
 │   │   ├── layout.tsx                  # 布局组件
 │   │   └── globals.css                 # 全局样式
-│   ├── components/
-│   │   └── OrderPreview.tsx            # 订单预览组件
 │   └── lib/
 │       ├── ai.ts                       # AI处理函数
 │       └── utils.ts                    # 工具函数
