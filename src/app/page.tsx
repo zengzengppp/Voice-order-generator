@@ -22,6 +22,48 @@ interface Factory {
   name: string
 }
 
+// Custom hook for number counting animation
+function useCountAnimation(target: number, duration: number = 1000) {
+  const [current, setCurrent] = useState(0)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  useEffect(() => {
+    if (target === 0) {
+      setCurrent(0)
+      return
+    }
+
+    setIsAnimating(true)
+    const startTime = Date.now()
+    const startValue = current
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      
+      // Use easeOutQuart for smooth deceleration
+      const easedProgress = 1 - Math.pow(1 - progress, 4)
+      const newValue = Math.round(startValue + (target - startValue) * easedProgress)
+      
+      setCurrent(newValue)
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        setIsAnimating(false)
+      }
+    }
+
+    const timeoutId = setTimeout(() => {
+      requestAnimationFrame(animate)
+    }, 100) // Small delay before starting animation
+
+    return () => clearTimeout(timeoutId)
+  }, [target, duration])
+
+  return { current, isAnimating }
+}
+
 export default function Home() {
   // Hydration fix - prevent SSR mismatch
   const [isClient, setIsClient] = useState(false)
@@ -488,13 +530,7 @@ export default function Home() {
           
           .order-page { 
             padding: 20px;
-            page-break-inside: avoid; 
-            page-break-after: always; 
             background: #fff;
-          }
-          
-          .order-page:last-child { 
-            page-break-after: auto !important; 
           }
           
           .print-header { 
@@ -855,6 +891,14 @@ export default function Home() {
 
   const stats = getStatistics()
 
+  // Animation hooks for statistics
+  const animatedTodayOrders = useCountAnimation(currentTab === 'invoicing' ? stats.todayOrders : 0, 800)
+  const animatedTodayRevenue = useCountAnimation(currentTab === 'invoicing' ? stats.todayRevenue : 0, 1000)
+  const animatedMonthOrders = useCountAnimation(currentTab === 'management' ? stats.monthOrders : 0, 800)
+  const animatedMonthRevenue = useCountAnimation(currentTab === 'management' ? stats.monthRevenue : 0, 1000)
+  const animatedTotalFactories = useCountAnimation(currentTab === 'management' ? stats.totalFactories : 0, 600)
+  const animatedTotalOrders = useCountAnimation(currentTab === 'management' ? stats.totalOrders : 0, 900)
+
   // 渲染函数 - 防止重新创建组件导致输入框失焦
   const renderTodayOrdersList = () => {
     const todayOrders = getTodaysOrders()
@@ -1124,11 +1168,11 @@ export default function Home() {
             {/* Quick stats cards */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="group bg-[#e7e5df]/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-[#44bba4]/20 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer hover:border-[#44bba4]/40">
-                <div className="text-2xl font-bold text-[#44bba4]">{stats.todayOrders}</div>
+                <div className="text-2xl font-bold text-[#44bba4]">{animatedTodayOrders.current}</div>
                 <div className="text-xs text-[#5d666b] transition-colors group-hover:text-[#44bba4]">📊 今日订单</div>
               </div>
               <div className="group bg-[#e7e5df]/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-[#393e41]/20 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer hover:border-[#393e41]/40">
-                <div className="text-2xl font-bold text-[#393e41]">¥{stats.todayRevenue.toFixed(0)}</div>
+                <div className="text-2xl font-bold text-[#393e41]">¥{animatedTodayRevenue.current.toFixed(0)}</div>
                 <div className="text-xs text-[#5d666b] transition-colors group-hover:text-[#393e41]">💰 今日营收</div>
               </div>
             </div>
@@ -1195,14 +1239,14 @@ export default function Home() {
         {/* Enhanced Statistics Dashboard */}
         <div className="grid grid-cols-2 gap-4">
           <div className="group bg-gradient-to-br from-[#44bba4] to-[#369683] rounded-2xl p-4 text-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer">
-            <div className="text-2xl font-bold">📈 {stats.monthOrders}</div>
+            <div className="text-2xl font-bold">📈 {animatedMonthOrders.current}</div>
             <div className="text-[#daf1ed] text-sm transition-opacity group-hover:opacity-90">本月订单</div>
-            <div className="text-lg font-medium mt-1 transition-all group-hover:tracking-wide">¥{stats.monthRevenue.toFixed(0)}</div>
+            <div className="text-lg font-medium mt-1 transition-all group-hover:tracking-wide">¥{animatedMonthRevenue.current.toFixed(0)}</div>
           </div>
           <div className="group bg-gradient-to-br from-[#393e41] to-[#2e3234] rounded-2xl p-4 text-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer">
-            <div className="text-2xl font-bold">🏭 {stats.totalFactories}</div>
+            <div className="text-2xl font-bold">🏭 {animatedTotalFactories.current}</div>
             <div className="text-[#d6d9db] text-sm transition-opacity group-hover:opacity-90">合作厂家</div>
-            <div className="text-lg font-medium mt-1 transition-all group-hover:tracking-wide">{stats.totalOrders} 总订单</div>
+            <div className="text-lg font-medium mt-1 transition-all group-hover:tracking-wide">{animatedTotalOrders.current} 总订单</div>
           </div>
         </div>
 
@@ -1437,17 +1481,7 @@ export default function Home() {
 
         {/* Modern bottom navigation */}
         <nav className="fixed bottom-0 left-0 right-0 bg-[#e7e5df]/95 backdrop-blur-sm border-t border-[#d3d0cb]/50 px-4 py-2 z-50">
-          <div className="relative flex items-center justify-around">
-            {/* Animated sliding indicator */}
-            <div 
-              className="absolute top-0 h-1 bg-[#44bba4] rounded-full transition-all duration-300 ease-out"
-              style={{
-                width: '33.33%',
-                left: currentTab === 'invoicing' ? '16.67%' : '50%',
-                transform: 'translateX(-50%)'
-              }}
-            />
-            
+          <div className="flex items-center justify-around">
             <button
               onClick={() => setCurrentTab('invoicing')}
               className={`flex flex-col items-center py-2 px-4 rounded-xl transition-all duration-300 ${
