@@ -687,49 +687,221 @@ export default function Home() {
 
     const finalContent = content + orderContent + footer
 
-    // 检测是否为移动设备
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    // 检测浏览器类型和设备
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent)
+    const isIOS = /ipad|iphone|ipod/.test(userAgent)
+    const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent)
+    const isChrome = /chrome/.test(userAgent)
+    const isMiui = /miuibrowser/.test(userAgent)
+    const isWeChat = /micromessenger/.test(userAgent)
     
+    // 创建增强的移动端打印界面
+    const createMobilePrintInterface = (printWindow: Window) => {
+      // 添加多个打印选项按钮
+      const printControls = printWindow.document.createElement('div')
+      printControls.innerHTML = `
+        <div class="no-print mobile-print-controls" style="
+          position: fixed; 
+          bottom: 20px; 
+          left: 50%; 
+          transform: translateX(-50%);
+          z-index: 1000;
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: center;
+          max-width: 90vw;
+        ">
+          <button id="print-btn" style="
+            background: #44bba4; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 25px; 
+            font-size: 14px; 
+            font-weight: bold; 
+            box-shadow: 0 4px 15px rgba(68,187,164,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+          ">
+            🖨️ 打印订单
+          </button>
+          
+          <button id="share-btn" style="
+            background: #e7bb41; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 25px; 
+            font-size: 14px; 
+            font-weight: bold; 
+            box-shadow: 0 4px 15px rgba(231,187,65,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+          ">
+            📱 分享订单
+          </button>
+          
+          <button id="copy-btn" style="
+            background: #393e41; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 25px; 
+            font-size: 14px; 
+            font-weight: bold; 
+            box-shadow: 0 4px 15px rgba(57,62,65,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+          ">
+            📋 复制内容
+          </button>
+        </div>`
+      
+      printWindow.document.body.appendChild(printControls)
+      
+      // 添加事件处理
+      const addEventListeners = () => {
+        // 打印按钮
+        const printBtn = printWindow.document.getElementById('print-btn')
+        if (printBtn) {
+          printBtn.addEventListener('click', () => {
+            try {
+              printWindow.print()
+            } catch (error) {
+              console.error('打印失败:', error)
+              alert('打印功能可能不被当前浏览器支持，请尝试使用分享或复制功能')
+            }
+          })
+        }
+        
+        // 分享按钮 (支持Web Share API)
+        const shareBtn = printWindow.document.getElementById('share-btn')
+        if (shareBtn) {
+          shareBtn.addEventListener('click', async () => {
+            try {
+              if (navigator.share) {
+                await navigator.share({
+                  title: title,
+                  text: '订单详情',
+                  url: printWindow.location.href
+                })
+              } else {
+                // 降级方案：复制当前页面URL
+                await navigator.clipboard.writeText(printWindow.location.href)
+                alert('订单链接已复制到剪贴板')
+              }
+            } catch (error) {
+              console.error('分享失败:', error)
+              alert('分享功能暂不可用，请使用复制功能')
+            }
+          })
+        }
+        
+        // 复制内容按钮
+        const copyBtn = printWindow.document.getElementById('copy-btn')
+        if (copyBtn) {
+          copyBtn.addEventListener('click', async () => {
+            try {
+              // 提取文本内容
+              const textContent = printWindow.document.body.innerText
+              await navigator.clipboard.writeText(textContent)
+              alert('订单内容已复制到剪贴板')
+            } catch (error) {
+              console.error('复制失败:', error)
+              alert('复制功能不可用，请手动选择文本复制')
+            }
+          })
+        }
+      }
+      
+      // 确保DOM加载完成后添加事件
+      if (printWindow.document.readyState === 'complete') {
+        addEventListeners()
+      } else {
+        printWindow.addEventListener('load', addEventListeners)
+      }
+    }
+    
+    // 根据不同浏览器采用不同策略
     if (isMobile) {
-      // 移动端：尝试直接打印或显示分享选项
-      const printWindow = window.open('', '_blank', 'width=device-width,initial-scale=1.0')
+      let windowFeatures = 'width=device-width,initial-scale=1.0,scrollbars=yes,resizable=yes'
+      
+      // Safari特殊处理
+      if (isSafari || isIOS) {
+        windowFeatures = 'scrollbars=yes,resizable=yes,width=' + screen.width + ',height=' + screen.height
+      }
+      
+      const printWindow = window.open('', '_blank', windowFeatures)
+      
       if (printWindow) {
         printWindow.document.write(finalContent)
         printWindow.document.close()
         
-        // 添加移动端打印按钮
-        const printButton = printWindow.document.createElement('div')
-        printButton.innerHTML = `
-          <div class="no-print" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
-            <button onclick="window.print()" style="
-              background: #44bba4; 
-              color: white; 
-              border: none; 
-              padding: 15px 25px; 
-              border-radius: 50px; 
-              font-size: 16px; 
-              font-weight: bold; 
-              box-shadow: 0 4px 15px rgba(68,187,164,0.3);
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            ">
-              🖨️ 打印订单
-            </button>
-          </div>`
-        printWindow.document.body.appendChild(printButton)
+        // 添加移动端控制界面
+        createMobilePrintInterface(printWindow)
+        
         printWindow.focus()
         
-        // 自动尝试打印（某些浏览器会阻止）
-        setTimeout(() => {
-          printWindow.print()
-        }, 1000)
+        // 根据浏览器类型决定是否自动打印
+        if (isChrome && !isMiui) {
+          // Chrome浏览器自动尝试打印
+          setTimeout(() => {
+            try {
+              printWindow.print()
+            } catch (error) {
+              console.error('自动打印失败:', error)
+            }
+          }, 1500)
+        } else if (isSafari || isIOS) {
+          // Safari需要用户手动触发
+          setTimeout(() => {
+            alert('请点击"打印订单"按钮，或使用浏览器菜单中的打印功能')
+          }, 1000)
+        }
+        
       } else {
-        showToast('无法打开打印页面，请检查浏览器设置', 'warning')
+        // 弹窗被阻止的降级方案
+        showToast('无法打开打印页面，请允许弹出窗口或尝试其他方式', 'warning')
+        
+        // 尝试在当前页面创建打印内容
+        const printDiv = document.createElement('div')
+        printDiv.innerHTML = finalContent
+        printDiv.style.display = 'none'
+        document.body.appendChild(printDiv)
+        
+        // 创建打印样式
+        const printStyle = document.createElement('style')
+        printStyle.innerHTML = `
+          @media print {
+            body * { visibility: hidden; }
+            .print-content, .print-content * { visibility: visible; }
+            .print-content { position: absolute; left: 0; top: 0; width: 100%; }
+          }
+        `
+        document.head.appendChild(printStyle)
+        printDiv.className = 'print-content'
+        printDiv.style.display = 'block'
+        
+        setTimeout(() => {
+          window.print()
+          document.body.removeChild(printDiv)
+          document.head.removeChild(printStyle)
+        }, 500)
       }
+      
     } else {
-      // 桌面端：传统打印方式
+      // 桌面端处理
       const printWindow = window.open('', '', 'height=800,width=1000,scrollbars=yes,resizable=yes')
       if (printWindow) {
         printWindow.document.write(finalContent)
@@ -822,7 +994,7 @@ export default function Home() {
                       step="0.01"
                       className="min-w-0 flex-shrink bg-transparent border-none focus:outline-none focus:bg-[#e7e5df] focus:border focus:border-[#44bba4] focus:rounded focus:px-1 transition-all text-right" 
                       placeholder="0"
-                      style={{ width: `${Math.max(2, (item.price?.toString() || '0').length + 1)}ch` }}
+                      style={{ width: `${Math.max(3, (item.price?.toString() || '0').length + 1)}ch` }}
                     />
                     <span className="mx-0.5">元/</span>
                     <input 
@@ -831,7 +1003,7 @@ export default function Home() {
                       onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
                       className="min-w-0 flex-shrink bg-transparent border-none focus:outline-none focus:bg-[#e7e5df] focus:border focus:border-[#44bba4] focus:rounded text-center transition-all" 
                       placeholder="单位"
-                      style={{ width: `${Math.max(2, (item.unit || '').length + 1)}ch` }}
+                      style={{ width: `${Math.max(3, (item.unit || '').length + 1)}ch` }}
                     />
                   </div>
                 </div>
