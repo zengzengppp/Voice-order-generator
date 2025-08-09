@@ -700,9 +700,44 @@ export default function Home() {
         }
       }
       
-      // 只添加打印按钮，使用内联onclick确保Safari兼容
+      // 创建关闭窗口函数
+      ;(printWindow as any).closePrintWindow = function() {
+        printWindow.close()
+      }
+      
+      // 添加控制按钮：左上角关闭按钮 + 底部打印按钮
       const printControls = printWindow.document.createElement('div')
       printControls.innerHTML = `
+        <!-- 左上角关闭按钮 -->
+        <div class="no-print" style="
+          position: fixed; 
+          top: 20px; 
+          left: 20px;
+          z-index: 1001;
+        ">
+          <button onclick="closePrintWindow()" style="
+            background: rgba(0, 0, 0, 0.6); 
+            color: white; 
+            border: none; 
+            width: 44px;
+            height: 44px;
+            border-radius: 50%; 
+            font-size: 18px; 
+            font-weight: bold; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            backdrop-filter: blur(10px);
+          " onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.95)'" ontouchend="this.style.transform='scale(1)'">
+            ✕
+          </button>
+        </div>
+
+        <!-- 底部打印按钮 -->
         <div class="no-print mobile-print-controls" style="
           position: fixed; 
           bottom: 20px; 
@@ -733,6 +768,7 @@ export default function Home() {
           </button>
         </div>
         
+        <!-- 用户引导提示 -->
         <div class="no-print" style="
           position: fixed; 
           bottom: 80px; 
@@ -746,6 +782,7 @@ export default function Home() {
           padding: 10px 15px;
           border-radius: 10px;
           max-width: 90vw;
+          backdrop-filter: blur(5px);
         ">
           如果打印按钮无效，请使用浏览器菜单中的"打印"功能
         </div>`
@@ -1188,14 +1225,14 @@ export default function Home() {
               </select>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-3">
               <div>
                 <label className="block text-sm text-gray-600 mb-2">开始日期</label>
                 <input 
                   type="date" 
                   value={reportStartDate}
                   onChange={(e) => setReportStartDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#d3d0cb]/30 border border-[#d3d0cb] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#44bba4] focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-3 bg-[#d3d0cb]/30 border border-[#d3d0cb] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#44bba4] focus:border-transparent text-sm"
                 />
               </div>
               <div>
@@ -1204,7 +1241,7 @@ export default function Home() {
                   type="date" 
                   value={reportEndDate}
                   onChange={(e) => setReportEndDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#d3d0cb]/30 border border-[#d3d0cb] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#44bba4] focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-3 bg-[#d3d0cb]/30 border border-[#d3d0cb] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#44bba4] focus:border-transparent text-sm"
                 />
               </div>
             </div>
@@ -1400,13 +1437,23 @@ export default function Home() {
 
         {/* Modern bottom navigation */}
         <nav className="fixed bottom-0 left-0 right-0 bg-[#e7e5df]/95 backdrop-blur-sm border-t border-[#d3d0cb]/50 px-4 py-2 z-50">
-          <div className="flex items-center justify-around">
+          <div className="relative flex items-center justify-around">
+            {/* Animated sliding indicator */}
+            <div 
+              className="absolute top-0 h-1 bg-[#44bba4] rounded-full transition-all duration-300 ease-out"
+              style={{
+                width: '33.33%',
+                left: currentTab === 'invoicing' ? '16.67%' : '50%',
+                transform: 'translateX(-50%)'
+              }}
+            />
+            
             <button
               onClick={() => setCurrentTab('invoicing')}
-              className={`flex flex-col items-center py-2 px-4 rounded-xl transition-all duration-200 ${
+              className={`flex flex-col items-center py-2 px-4 rounded-xl transition-all duration-300 ${
                 currentTab === 'invoicing'
-                  ? 'bg-[#44bba4]/20 text-[#44bba4] scale-105'
-                  : 'text-[#5d666b] hover:text-[#393e41]'
+                  ? 'bg-[#44bba4]/20 text-[#44bba4] scale-105 transform'
+                  : 'text-[#5d666b] hover:text-[#393e41] hover:scale-102 transform'
               }`}
             >
               <div className="relative">
@@ -1414,7 +1461,7 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
                 {currentOrder && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                 )}
               </div>
               <span className="text-xs font-medium">开单</span>
@@ -1422,10 +1469,10 @@ export default function Home() {
             
             <button
               onClick={() => setCurrentTab('management')}
-              className={`flex flex-col items-center py-2 px-4 rounded-xl transition-all duration-200 ${
+              className={`flex flex-col items-center py-2 px-4 rounded-xl transition-all duration-300 ${
                 currentTab === 'management'
-                  ? 'bg-[#44bba4]/20 text-[#44bba4] scale-105'
-                  : 'text-[#5d666b] hover:text-[#393e41]'
+                  ? 'bg-[#44bba4]/20 text-[#44bba4] scale-105 transform'
+                  : 'text-[#5d666b] hover:text-[#393e41] hover:scale-102 transform'
               }`}
             >
               <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
