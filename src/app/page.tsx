@@ -465,71 +465,282 @@ export default function Home() {
     }
   }
 
-  // Generate printable report
+  // Generate printable report with better mobile support
   const generatePrintableReport = (ordersToPrint: Order[], title: string) => {
-    let content = `
-      <html>
+    const content = `
+      <!DOCTYPE html>
+      <html lang="zh-CN">
       <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title}</title>
         <style>
-          body { font-family: sans-serif; margin: 20px; font-size: 14px; }
-          h1 { text-align: center; }
-          .order { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-bottom: 20px; page-break-inside: avoid; page-break-after: always; }
-          .order:last-child { page-break-after: auto; }
-          .order-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2em; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          .total-row td { font-weight: bold; }
+          * { box-sizing: border-box; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            font-size: 14px; 
+            line-height: 1.4;
+            color: #333;
+            background: #fff;
+          }
+          
+          .print-header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            border-bottom: 2px solid #44bba4; 
+            padding-bottom: 15px;
+          }
+          
+          .print-header h1 { 
+            margin: 0 0 10px 0; 
+            color: #44bba4; 
+            font-size: 24px;
+            font-weight: bold;
+          }
+          
+          .print-date { 
+            color: #666; 
+            font-size: 14px; 
+          }
+          
+          .order { 
+            border: 2px solid #44bba4; 
+            border-radius: 12px; 
+            padding: 20px; 
+            margin-bottom: 30px; 
+            page-break-inside: avoid; 
+            page-break-after: always; 
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          }
+          
+          .order:last-child { 
+            page-break-after: auto; 
+            margin-bottom: 0;
+          }
+          
+          .order-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            font-weight: bold; 
+            font-size: 18px; 
+            border-bottom: 2px solid #e7e5df; 
+            padding-bottom: 15px; 
+            margin-bottom: 20px;
+            color: #393e41;
+          }
+          
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 15px;
+          }
+          
+          th, td { 
+            border: 1px solid #d3d0cb; 
+            padding: 12px 8px; 
+            text-align: center; 
+            vertical-align: middle;
+          }
+          
+          th { 
+            background-color: #44bba4; 
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+          }
+          
+          td { 
+            font-size: 13px; 
+          }
+          
+          .product-name { 
+            text-align: left !important; 
+            font-weight: 600;
+          }
+          
+          .total-row { 
+            background-color: #faf1d9 !important; 
+            border-top: 2px solid #e7bb41 !important;
+          }
+          
+          .total-row td { 
+            font-weight: bold; 
+            font-size: 16px;
+            color: #e7bb41;
+          }
+          
+          .print-footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+          }
+          
+          /* 打印样式 */
           @media print {
-            body { margin: 0; font-size: 12px; }
-            .no-print { display: none; }
+            body { 
+              margin: 0; 
+              padding: 15px;
+              font-size: 12px; 
+              background: white !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            
+            .order { 
+              page-break-inside: avoid; 
+              page-break-after: always;
+              break-inside: avoid;
+              box-shadow: none;
+            }
+            
+            .order:last-child { 
+              page-break-after: auto; 
+            }
+            
+            .no-print { 
+              display: none !important; 
+            }
+            
+            th { 
+              background-color: #44bba4 !important; 
+              color: white !important;
+            }
+            
+            .total-row { 
+              background-color: #faf1d9 !important; 
+            }
+          }
+          
+          /* 移动端样式 */
+          @media screen and (max-width: 768px) {
+            body { padding: 10px; font-size: 13px; }
+            .print-header h1 { font-size: 20px; }
+            .order { padding: 15px; }
+            .order-header { font-size: 16px; flex-direction: column; align-items: flex-start; gap: 5px; }
+            th, td { padding: 8px 4px; font-size: 12px; }
           }
         </style>
       </head>
       <body>
-        <h1>${title}</h1>
+        <div class="print-header">
+          <h1>丰业膳食开单系统</h1>
+          <div class="print-date">打印时间: ${new Date().toLocaleString('zh-CN')} | ${title}</div>
+        </div>
     `
 
-    ordersToPrint.forEach(order => {
+    let orderContent = ''
+    ordersToPrint.forEach((order, orderIndex) => {
       const factory = factories.find(f => f.id === order.factoryId)
-      content += `
+      orderContent += `
         <div class="order">
           <div class="order-header">
-            <span>客户: ${factory ? factory.name : '未知'}</span>
-            <span>日期: ${new Date(order.date).toLocaleDateString()}</span>
+            <span>客户: ${factory ? factory.name : '未知厂家'}</span>
+            <span>日期: ${new Date(order.date).toLocaleDateString('zh-CN')}</span>
           </div>
           <table>
-            <thead><tr><th>菜品</th><th>数量</th><th>单位</th><th>单价(元)</th><th>小计(元)</th></tr></thead>
+            <thead>
+              <tr>
+                <th style="width: 35%">菜品</th>
+                <th style="width: 15%">数量</th>
+                <th style="width: 15%">单位</th>
+                <th style="width: 15%">单价</th>
+                <th style="width: 20%">小计</th>
+              </tr>
+            </thead>
             <tbody>`
+      
       order.items.forEach(item => {
-        content += `
+        orderContent += `
           <tr>
-            <td>${item.name}</td>
+            <td class="product-name">${item.name}</td>
             <td>${item.quantity}</td>
             <td>${item.unit || '斤'}</td>
             <td>¥${(item.price || 0).toFixed(2)}</td>
             <td>¥${((item.quantity || 0) * (item.price || 0)).toFixed(2)}</td>
           </tr>`
       })
-      content += `
+      
+      orderContent += `
               <tr class="total-row">
-                <td colspan="4" style="text-align:right;">总计:</td>
-                <td>¥${(order.grandTotal || 0).toFixed(2)}</td>
+                <td colspan="4" style="text-align: right; font-weight: bold;">订单总计:</td>
+                <td style="font-weight: bold;">¥${(order.grandTotal || 0).toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
         </div>`
     })
 
-    content += '</body></html>'
+    const footer = `
+        <div class="print-footer">
+          <p>共 ${ordersToPrint.length} 个订单 | 总金额: ¥${ordersToPrint.reduce((sum, order) => sum + order.grandTotal, 0).toFixed(2)}</p>
+          <p>丰业膳食 - 智能开单助手</p>
+        </div>
+      </body>
+      </html>`
 
-    const printWindow = window.open('', '', 'height=600,width=800')
-    if (printWindow) {
-      printWindow.document.write(content)
-      printWindow.document.close()
-      printWindow.focus()
-      printWindow.print()
+    const finalContent = content + orderContent + footer
+
+    // 检测是否为移动设备
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    
+    if (isMobile) {
+      // 移动端：尝试直接打印或显示分享选项
+      const printWindow = window.open('', '_blank', 'width=device-width,initial-scale=1.0')
+      if (printWindow) {
+        printWindow.document.write(finalContent)
+        printWindow.document.close()
+        
+        // 添加移动端打印按钮
+        const printButton = printWindow.document.createElement('div')
+        printButton.innerHTML = `
+          <div class="no-print" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+            <button onclick="window.print()" style="
+              background: #44bba4; 
+              color: white; 
+              border: none; 
+              padding: 15px 25px; 
+              border-radius: 50px; 
+              font-size: 16px; 
+              font-weight: bold; 
+              box-shadow: 0 4px 15px rgba(68,187,164,0.3);
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            ">
+              🖨️ 打印订单
+            </button>
+          </div>`
+        printWindow.document.body.appendChild(printButton)
+        printWindow.focus()
+        
+        // 自动尝试打印（某些浏览器会阻止）
+        setTimeout(() => {
+          printWindow.print()
+        }, 1000)
+      } else {
+        showToast('无法打开打印页面，请检查浏览器设置', 'warning')
+      }
+    } else {
+      // 桌面端：传统打印方式
+      const printWindow = window.open('', '', 'height=800,width=1000,scrollbars=yes,resizable=yes')
+      if (printWindow) {
+        printWindow.document.write(finalContent)
+        printWindow.document.close()
+        printWindow.focus()
+        setTimeout(() => {
+          printWindow.print()
+        }, 500)
+      } else {
+        showToast('无法打开打印窗口，请允许弹出窗口', 'warning')
+      }
     }
   }
 
@@ -603,21 +814,24 @@ export default function Home() {
                     className="w-full bg-transparent border-none text-base font-semibold text-[#393e41] focus:outline-none focus:bg-[#e7e5df] focus:border focus:border-[#44bba4] focus:rounded-lg focus:px-2 focus:py-1 transition-all mb-1" 
                     placeholder="商品名称"
                   />
-                  <div className="text-sm text-[#5d666b]">
+                  <div className="text-sm text-[#5d666b] flex items-center">
                     <input 
                       type="number" 
                       value={item.price || ''} 
                       onChange={(e) => handleItemChange(index, 'price', parseFloat(e.target.value) || 0)}
                       step="0.01"
-                      className="w-8 bg-transparent border-none focus:outline-none focus:bg-[#e7e5df] focus:border focus:border-[#44bba4] focus:rounded focus:px-1 transition-all" 
+                      className="min-w-0 flex-shrink bg-transparent border-none focus:outline-none focus:bg-[#e7e5df] focus:border focus:border-[#44bba4] focus:rounded focus:px-1 transition-all text-right" 
                       placeholder="0"
-                    />元/
+                      style={{ width: `${Math.max(2, (item.price?.toString() || '0').length + 1)}ch` }}
+                    />
+                    <span className="mx-0.5">元/</span>
                     <input 
                       type="text" 
                       value={item.unit || ''} 
                       onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                      className="w-8 bg-transparent border-none focus:outline-none focus:bg-[#e7e5df] focus:border focus:border-[#44bba4] focus:rounded text-center transition-all" 
+                      className="min-w-0 flex-shrink bg-transparent border-none focus:outline-none focus:bg-[#e7e5df] focus:border focus:border-[#44bba4] focus:rounded text-center transition-all" 
                       placeholder="单位"
+                      style={{ width: `${Math.max(2, (item.unit || '').length + 1)}ch` }}
                     />
                   </div>
                 </div>
