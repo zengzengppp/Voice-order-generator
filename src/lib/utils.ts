@@ -31,7 +31,7 @@ export function filterOrdersByDateRange(
 }
 
 export function calculateOrdersTotal(orders: Order[]): number {
-  return orders.reduce((sum, order) => sum + order.total, 0)
+  return orders.reduce((sum, order) => sum + order.grandTotal, 0)
 }
 
 export function generatePrintHTML(orders: Order[], startDate?: string, endDate?: string): string {
@@ -63,13 +63,13 @@ export function generatePrintHTML(orders: Order[], startDate?: string, endDate?:
         ${orders.map(order => `
             <div class="order">
                 <div class="order-header">
-                    <span>客户: ${order.supplier}</span>
-                    <span>日期: ${order.date}</span>
-                    <span>金额: ${formatCurrency(order.total)}</span>
+                    <span>客户: 厂家${order.factoryId}</span>
+                    <span>日期: ${formatDate(order.date)}</span>
+                    <span>金额: ${formatCurrency(order.grandTotal)}</span>
                 </div>
                 <div class="items">
                     商品明细: ${order.items.map(item => 
-                      `${item.name} ${item.quantity}${item.unit} × ${formatCurrency(item.price)} = ${formatCurrency(item.amount)}`
+                      `${item.name} ${item.quantity}${item.unit} × ${formatCurrency(item.price)} = ${formatCurrency(item.quantity * item.price)}`
                     ).join(' | ')}
                 </div>
             </div>
