@@ -477,13 +477,27 @@ export default function Home() {
         <style>
           * { box-sizing: border-box; }
           body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segui UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; 
             margin: 0; 
-            padding: 20px; 
+            padding: 0; 
             font-size: 14px; 
             line-height: 1.4;
             color: #333;
             background: #fff;
+          }
+          
+          .order-page { 
+            min-height: 100vh;
+            padding: 20px;
+            page-break-inside: avoid; 
+            page-break-after: always; 
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .order-page:last-child { 
+            page-break-after: auto; 
           }
           
           .print-header { 
@@ -505,20 +519,12 @@ export default function Home() {
             font-size: 14px; 
           }
           
-          .order { 
+          .order-content { 
+            flex: 1;
             border: 2px solid #44bba4; 
             border-radius: 12px; 
             padding: 20px; 
-            margin-bottom: 30px; 
-            page-break-inside: avoid; 
-            page-break-after: always; 
             background: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          }
-          
-          .order:last-child { 
-            page-break-after: auto; 
-            margin-bottom: 0;
           }
           
           .order-header { 
@@ -573,34 +579,25 @@ export default function Home() {
             color: #e7bb41;
           }
           
-          .print-footer {
-            margin-top: 30px;
-            text-align: center;
-            color: #666;
-            font-size: 12px;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-          }
-          
           /* 打印样式 */
           @media print {
             body { 
               margin: 0; 
-              padding: 15px;
+              padding: 0;
               font-size: 12px; 
               background: white !important;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
             
-            .order { 
+            .order-page { 
               page-break-inside: avoid; 
               page-break-after: always;
               break-inside: avoid;
-              box-shadow: none;
+              padding: 15px;
             }
             
-            .order:last-child { 
+            .order-page:last-child { 
               page-break-after: auto; 
             }
             
@@ -620,41 +617,42 @@ export default function Home() {
           
           /* 移动端样式 */
           @media screen and (max-width: 768px) {
-            body { padding: 10px; font-size: 13px; }
+            .order-page { padding: 10px; }
             .print-header h1 { font-size: 20px; }
-            .order { padding: 15px; }
+            .order-content { padding: 15px; }
             .order-header { font-size: 16px; flex-direction: column; align-items: flex-start; gap: 5px; }
             th, td { padding: 8px 4px; font-size: 12px; }
           }
         </style>
       </head>
-      <body>
-        <div class="print-header">
-          <h1>丰业膳食开单系统</h1>
-          <div class="print-date">打印时间: ${new Date().toLocaleString('zh-CN')} | ${title}</div>
-        </div>
-    `
+      <body>`
 
     let orderContent = ''
     ordersToPrint.forEach((order, orderIndex) => {
       const factory = factories.find(f => f.id === order.factoryId)
       orderContent += `
-        <div class="order">
-          <div class="order-header">
-            <span>客户: ${factory ? factory.name : '未知厂家'}</span>
-            <span>日期: ${new Date(order.date).toLocaleDateString('zh-CN')}</span>
+        <div class="order-page">
+          <div class="print-header">
+            <h1>丰业膳食开单系统</h1>
+            <div class="print-date">打印时间: ${new Date().toLocaleString('zh-CN')}</div>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 35%">菜品</th>
-                <th style="width: 15%">数量</th>
-                <th style="width: 15%">单位</th>
-                <th style="width: 15%">单价</th>
-                <th style="width: 20%">小计</th>
-              </tr>
-            </thead>
-            <tbody>`
+          
+          <div class="order-content">
+            <div class="order-header">
+              <span>客户: ${factory ? factory.name : '未知厂家'}</span>
+              <span>日期: ${new Date(order.date).toLocaleDateString('zh-CN')}</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 35%">菜品</th>
+                  <th style="width: 15%">数量</th>
+                  <th style="width: 15%">单位</th>
+                  <th style="width: 15%">单价</th>
+                  <th style="width: 20%">小计</th>
+                </tr>
+              </thead>
+              <tbody>`
       
       order.items.forEach(item => {
         orderContent += `
@@ -668,20 +666,17 @@ export default function Home() {
       })
       
       orderContent += `
-              <tr class="total-row">
-                <td colspan="4" style="text-align: right; font-weight: bold;">订单总计:</td>
-                <td style="font-weight: bold;">¥${(order.grandTotal || 0).toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
+                <tr class="total-row">
+                  <td colspan="4" style="text-align: right; font-weight: bold;">订单总计:</td>
+                  <td style="font-weight: bold;">¥${(order.grandTotal || 0).toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>`
     })
 
     const footer = `
-        <div class="print-footer">
-          <p>共 ${ordersToPrint.length} 个订单 | 总金额: ¥${ordersToPrint.reduce((sum, order) => sum + order.grandTotal, 0).toFixed(2)}</p>
-          <p>丰业膳食 - 智能开单助手</p>
-        </div>
       </body>
       </html>`
 
@@ -696,9 +691,9 @@ export default function Home() {
     const isMiui = /miuibrowser/.test(userAgent)
     const isWeChat = /micromessenger/.test(userAgent)
     
-    // 创建增强的移动端打印界面
+    // 创建简化的移动端打印界面
     const createMobilePrintInterface = (printWindow: Window) => {
-      // 添加多个打印选项按钮
+      // 只添加打印按钮
       const printControls = printWindow.document.createElement('div')
       printControls.innerHTML = `
         <div class="no-print mobile-print-controls" style="
@@ -708,63 +703,24 @@ export default function Home() {
           transform: translateX(-50%);
           z-index: 1000;
           display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
           justify-content: center;
-          max-width: 90vw;
         ">
           <button id="print-btn" style="
             background: #44bba4; 
             color: white; 
             border: none; 
-            padding: 12px 20px; 
-            border-radius: 25px; 
-            font-size: 14px; 
+            padding: 15px 30px; 
+            border-radius: 50px; 
+            font-size: 16px; 
             font-weight: bold; 
             box-shadow: 0 4px 15px rgba(68,187,164,0.3);
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             white-space: nowrap;
           ">
             🖨️ 打印订单
-          </button>
-          
-          <button id="share-btn" style="
-            background: #e7bb41; 
-            color: white; 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 25px; 
-            font-size: 14px; 
-            font-weight: bold; 
-            box-shadow: 0 4px 15px rgba(231,187,65,0.3);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-          ">
-            📱 分享订单
-          </button>
-          
-          <button id="copy-btn" style="
-            background: #393e41; 
-            color: white; 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 25px; 
-            font-size: 14px; 
-            font-weight: bold; 
-            box-shadow: 0 4px 15px rgba(57,62,65,0.3);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-          ">
-            📋 复制内容
           </button>
         </div>`
       
@@ -780,46 +736,7 @@ export default function Home() {
               printWindow.print()
             } catch (error) {
               console.error('打印失败:', error)
-              alert('打印功能可能不被当前浏览器支持，请尝试使用分享或复制功能')
-            }
-          })
-        }
-        
-        // 分享按钮 (支持Web Share API)
-        const shareBtn = printWindow.document.getElementById('share-btn')
-        if (shareBtn) {
-          shareBtn.addEventListener('click', async () => {
-            try {
-              if (navigator.share) {
-                await navigator.share({
-                  title: title,
-                  text: '订单详情',
-                  url: printWindow.location.href
-                })
-              } else {
-                // 降级方案：复制当前页面URL
-                await navigator.clipboard.writeText(printWindow.location.href)
-                alert('订单链接已复制到剪贴板')
-              }
-            } catch (error) {
-              console.error('分享失败:', error)
-              alert('分享功能暂不可用，请使用复制功能')
-            }
-          })
-        }
-        
-        // 复制内容按钮
-        const copyBtn = printWindow.document.getElementById('copy-btn')
-        if (copyBtn) {
-          copyBtn.addEventListener('click', async () => {
-            try {
-              // 提取文本内容
-              const textContent = printWindow.document.body.innerText
-              await navigator.clipboard.writeText(textContent)
-              alert('订单内容已复制到剪贴板')
-            } catch (error) {
-              console.error('复制失败:', error)
-              alert('复制功能不可用，请手动选择文本复制')
+              alert('打印功能可能不被当前浏览器支持，请使用浏览器菜单中的打印功能')
             }
           })
         }
