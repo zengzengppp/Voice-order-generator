@@ -487,13 +487,10 @@ export default function Home() {
           }
           
           .order-page { 
-            min-height: 100vh;
             padding: 20px;
             page-break-inside: avoid; 
             page-break-after: always; 
             background: #fff;
-            display: flex;
-            flex-direction: column;
           }
           
           .order-page:last-child { 
@@ -520,7 +517,6 @@ export default function Home() {
           }
           
           .order-content { 
-            flex: 1;
             border: 2px solid #44bba4; 
             border-radius: 12px; 
             padding: 20px; 
