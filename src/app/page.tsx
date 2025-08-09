@@ -494,7 +494,7 @@ export default function Home() {
           }
           
           .order-page:last-child { 
-            page-break-after: auto; 
+            page-break-after: auto !important; 
           }
           
           .print-header { 
@@ -594,7 +594,8 @@ export default function Home() {
             }
             
             .order-page:last-child { 
-              page-break-after: auto; 
+              page-break-after: auto !important; 
+              break-after: auto !important;
             }
             
             .no-print { 
