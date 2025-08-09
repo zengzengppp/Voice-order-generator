@@ -164,6 +164,11 @@ export default function Home() {
       return
     }
     
+    if (!text.trim()) {
+      showToast('请输入商品信息', 'warning')
+      return
+    }
+    
     setIsProcessing(true)
     setStatus('🔍 好的，我正在记...')
     
@@ -174,33 +179,51 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: text,
-          currentItems: currentOrder.items
+          text: text.trim(),
+          currentItems: currentOrder.items || []
         })
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'API请求失败')
+        let errorMessage = 'API请求失败'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`
+        } catch {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        }
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()
+      console.log('AI响应:', result) // 调试用
       
       if (result.items && Array.isArray(result.items)) {
-        const updatedOrder = { ...currentOrder, items: result.items }
-        setCurrentOrder(updateTotals(updatedOrder))
-        showToast('商品记录完成！', 'celebration')
-        setStatus('🎁 记好啦，曾老板！请您检查一下。')
-        setTimeout(() => setStatus(''), 4000)
+        // 过滤掉空的商品项
+        const validItems = result.items.filter((item: any) => item.name && item.name.trim())
+        if (validItems.length > 0) {
+          const updatedOrder = { ...currentOrder, items: validItems }
+          setCurrentOrder(updateTotals(updatedOrder))
+          showToast('商品记录完成！', 'celebration')
+          setStatus('🎁 记好啦，曾老板！请您检查一下。')
+          setTimeout(() => setStatus(''), 4000)
+        } else {
+          showToast('未识别到有效的商品信息，请重试', 'warning')
+          setStatus('')
+        }
       } else {
+        console.error('AI返回格式错误:', result) // 调试用
         throw new Error('AI返回的数据格式不正确')
       }
     } catch (error) {
-      showToast(error instanceof Error ? error.message : '处理失败，请重试', 'error')
+      console.error('处理订单错误:', error) // 调试用
+      const errorMessage = error instanceof Error ? error.message : '处理失败，请重试'
+      showToast(errorMessage, 'error')
       setStatus('😅 出错了，请重试。')
+      setTimeout(() => setStatus(''), 3000)
     } finally {
       setIsProcessing(false)
-      setVoiceInput('')
+      // 不清空输入，让用户可以重试
     }
   }
 
@@ -386,6 +409,7 @@ export default function Home() {
       return
     }
     setTouchStart(e.targetTouches[0].clientX)
+    setTouchEnd(0) // 重置结束位置
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -398,7 +422,12 @@ export default function Home() {
   }
 
   const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
+    if (!touchStart || !touchEnd) {
+      // 清除触摸状态
+      setTouchStart(0)
+      setTouchEnd(0)
+      return
+    }
     
     const distance = touchStart - touchEnd
     const isLeftSwipe = distance > 50
