@@ -690,7 +690,17 @@ export default function Home() {
     
     // 创建简化的移动端打印界面
     const createMobilePrintInterface = (printWindow: Window) => {
-      // 只添加打印按钮
+      // 创建打印函数并添加到window对象
+      (printWindow as any).safariPrint = function() {
+        try {
+          printWindow.print()
+        } catch (error) {
+          console.error('打印失败:', error)
+          alert('打印功能可能不被当前浏览器支持，请使用浏览器菜单中的打印功能或长按页面选择打印')
+        }
+      }
+      
+      // 只添加打印按钮，使用内联onclick确保Safari兼容
       const printControls = printWindow.document.createElement('div')
       printControls.innerHTML = `
         <div class="no-print mobile-print-controls" style="
@@ -702,7 +712,7 @@ export default function Home() {
           display: flex;
           justify-content: center;
         ">
-          <button id="print-btn" style="
+          <button onclick="safariPrint()" style="
             background: #44bba4; 
             color: white; 
             border: none; 
@@ -716,35 +726,31 @@ export default function Home() {
             align-items: center;
             gap: 8px;
             white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
           ">
             🖨️ 打印订单
           </button>
+        </div>
+        
+        <div class="no-print" style="
+          position: fixed; 
+          bottom: 80px; 
+          left: 50%; 
+          transform: translateX(-50%);
+          z-index: 999;
+          text-align: center;
+          color: #666;
+          font-size: 14px;
+          background: rgba(255,255,255,0.9);
+          padding: 10px 15px;
+          border-radius: 10px;
+          max-width: 90vw;
+        ">
+          如果打印按钮无效，请使用浏览器菜单中的"打印"功能
         </div>`
       
       printWindow.document.body.appendChild(printControls)
-      
-      // 添加事件处理
-      const addEventListeners = () => {
-        // 打印按钮
-        const printBtn = printWindow.document.getElementById('print-btn')
-        if (printBtn) {
-          printBtn.addEventListener('click', () => {
-            try {
-              printWindow.print()
-            } catch (error) {
-              console.error('打印失败:', error)
-              alert('打印功能可能不被当前浏览器支持，请使用浏览器菜单中的打印功能')
-            }
-          })
-        }
-      }
-      
-      // 确保DOM加载完成后添加事件
-      if (printWindow.document.readyState === 'complete') {
-        addEventListeners()
-      } else {
-        printWindow.addEventListener('load', addEventListeners)
-      }
     }
     
     // 根据不同浏览器采用不同策略
@@ -766,23 +772,6 @@ export default function Home() {
         createMobilePrintInterface(printWindow)
         
         printWindow.focus()
-        
-        // 根据浏览器类型决定是否自动打印
-        if (isChrome && !isMiui) {
-          // Chrome浏览器自动尝试打印
-          setTimeout(() => {
-            try {
-              printWindow.print()
-            } catch (error) {
-              console.error('自动打印失败:', error)
-            }
-          }, 1500)
-        } else if (isSafari || isIOS) {
-          // Safari需要用户手动触发
-          setTimeout(() => {
-            alert('请点击"打印订单"按钮，或使用浏览器菜单中的打印功能')
-          }, 1000)
-        }
         
       } else {
         // 弹窗被阻止的降级方案
@@ -821,9 +810,6 @@ export default function Home() {
         printWindow.document.write(finalContent)
         printWindow.document.close()
         printWindow.focus()
-        setTimeout(() => {
-          printWindow.print()
-        }, 500)
       } else {
         showToast('无法打开打印窗口，请允许弹出窗口', 'warning')
       }
@@ -1043,9 +1029,14 @@ export default function Home() {
               <textarea
                 value={voiceInput}
                 onChange={(e) => setVoiceInput(e.target.value)}
-                placeholder="说出商品信息，例如：白萝卜10斤每斤1.5元..."
+                placeholder="输入商品信息，例如：白萝卜10斤每斤1.5元..."
                 className="w-full bg-transparent border-none resize-none focus:outline-none text-gray-700 placeholder-gray-400"
                 rows={3}
+                autoComplete="off"
+                spellCheck="false"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
               />
             </div>
             
